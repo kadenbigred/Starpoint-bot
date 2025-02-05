@@ -4,4 +4,5 @@ the amount of good reactions is subtracted from the amount of bad reactions the 
 
 ### Requirements:
 discord.js & mongodb libraries
+
 Mongodb account and a database to link the bot to
