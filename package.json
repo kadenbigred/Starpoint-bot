@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "discord.js": "^14.17.3",
+    "dotenv": "^16.4.7",
+    "git": "^0.1.5",
+    "mongoose": "^8.8.2"
+  }
+}
