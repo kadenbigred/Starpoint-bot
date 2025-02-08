@@ -24,6 +24,7 @@ const serverSettingsSchema = new mongoose.Schema({
     goodEmoji: {type: String, required: true}, 
     badEmoji: {type: String, required: true},
     minReacts: {type: String, required: true},
+    adminRole: {type: String, required: true},
 });
 
 const userScoreSchema = new mongoose.Schema({
