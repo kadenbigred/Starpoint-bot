@@ -1,14 +1,14 @@
 
 
-require('dotenv').config(); 
+require('dotenv').config();
 const { Client, IntentsBitField, Partials, EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 token = process.env.TOKEN
 dbtoken = process.env.DB_TOKEN
 
 prefix = '!sc' // You can set this to whatever you want
-botID = "1308539513198608494" 
-settingsDict = {} // set up as {GuildID, goodChannel, badChannel, goodEmoji, badEmoji, minReacts}
+botID = "1308539513198608494"
+settingsDict = {} // set up as key = GuildID, values = {goodChannel, badChannel, goodEmoji, badEmoji, minReacts, adminRole}
 
 
 const { goodSchema, badSchema, settingsSchema, scoreSchema } = require('./Schemas/schemas');
@@ -92,7 +92,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
         }
     }
 
-     // Check if the server is registered in the bot's database/apply the settings to dictionary
+    // Check if the server is registered in the bot's database/apply the settings to dictionary
     applyServerSettings(reaction.message.guild.id)
 
     //get settings for server the reaction was recieved in
@@ -102,6 +102,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     goodEmoji = serverSettings[2]
     badEmoji = serverSettings[3]
     minReacts = serverSettings[4]
+    adminRole = serverSettings[5]
 
     //Check if the user being reacted is in the bot's database or not
     if (await checkIfUsed(scoreSchema, ['serverID', 'userID'], [reaction.message.guild.id, reaction.message.author.id]) == false) {
@@ -118,37 +119,35 @@ client.on('messageReactionAdd', async (reaction, user) => {
         if (badChannel == '0') {
             reaction.message.channel.send("You currently have no channel set for " + badEmoji + "s, set one with " + prefix + " set-bad-channel")
         } else {
-            
+
             console.log(`${reaction.message.author} shroomed message : "${reaction.message.content}"`);
             console.log(`this message has ${reaction.count} shrooms`);
-            
-            //check if the post has enough reacts to get on the board
-            if(reaction.count >= minReacts){
 
-            //Check for if server emoji is a custom emoji
-            const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === badEmoji)
-            console.log(emojiCheck)
-            if (emojiCheck == undefined) {
-                try {
-                    boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel)
-                } catch (error) {
-                    console.log(error)
-                    reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+            //check if the post has enough reacts to get on the board
+            if (reaction.count >= minReacts && reaction.count != null) {
+
+                //Check for if server emoji is a custom emoji
+                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === badEmoji)
+                console.log(emojiCheck)
+                if (emojiCheck == undefined) {
+                    try {
+                        boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel)
+                    } catch (error) {
+                        console.log(error)
+                        reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+                    }
+                    //If custom emoji modify board message to properly send it
+                } else {
+                    try {
+                        boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel)
+                    } catch (error) {
+                        console.log(error)
+                        reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+                    }
                 }
-            //If custom emoji modify board message to properly send it
-            } else {
-                try {
-                    boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel)
-                } catch (error) {
-                    console.log(error)
-                    reaction.message.channel.send("Could not send message to board, was the channel deleted?")
-                }
-            }
-            console.log("Saved post to bad schema")
-            //Update points in database
-            updatePoints(reaction.message.guild.id, reaction.message.author.id, 'badPoints', 1)
-            }else{
-                reaction.message.channel.send("not enough reactions")
+                console.log("Saved post to bad schema")
+                //Update points in database
+                updatePoints(reaction.message.guild.id, reaction.message.author.id, 'badPoints', 1)
             }
         }
     }
@@ -163,35 +162,32 @@ client.on('messageReactionAdd', async (reaction, user) => {
             console.log(`this message has ${reaction.count} melons`);
 
             //check if the post has enough reacts to get on the board
-            if(reaction.count >= minReacts){
+            if (reaction.count >= minReacts && reaction.count != null) {
 
-            //Check for if server emoji is a custom emoji
-            const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === goodEmoji)
-            console.log(emojiCheck)
-            if (emojiCheck == undefined) {
-                try {
-                    boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel)
-                } catch (error) {
-                    console.log(error)
-                    reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+                //Check for if server emoji is a custom emoji
+                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === goodEmoji)
+                console.log(emojiCheck)
+                if (emojiCheck == undefined) {
+                    try {
+                        boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel)
+                    } catch (error) {
+                        console.log(error)
+                        reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+                    }
+                    //If custom emoji modify board message to properly send it
+                } else {
+                    try {
+                        boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel)
+                    } catch (error) {
+                        console.log(error)
+                        reaction.message.channel.send("Could not send message to board, was the channel deleted?")
+                    }
                 }
-            //If custom emoji modify board message to properly send it
-            } else {
-                try {
-                    boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel)
-                    console.log('AHHHHHHH')
-                } catch (error) {
-                    console.log(error)
-                    reaction.message.channel.send("Could not send message to board, was the channel deleted?")
-                }
+                console.log("Saved post to good schema")
+                //Update points in database
+                updatePoints(reaction.message.guild.id, reaction.message.author.id, 'goodPoints', 1)
             }
-            console.log("Saved post to good schema")
-            //Update points in database
-            updatePoints(reaction.message.guild.id, reaction.message.author.id, 'goodPoints', 1)
-        }else{
-            reaction.message.channel.send("not enough reactions")
         }
-    }
     }
 
     //Everything below are related to message commands in the handleResponses() function
@@ -238,7 +234,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 
     //If a reaction is removed before one is added im going to assume its not for the purpose of the bot so im not going to do a database check for the server here
-    
+
     //get settings for server the reaction was recieved in
     serverSettings = settingsDict[reaction.message.guild.id]
     goodChannel = serverSettings[0]
@@ -246,6 +242,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
     goodEmoji = serverSettings[2]
     badEmoji = serverSettings[3]
     minReacts = serverSettings[4]
+    adminRole = serverSettings[5]
 
     //Check if the user being reacted is in the bot's database or not
     if (await checkIfUsed(scoreSchema, ['serverID', 'userID'], [reaction.message.guild.id, reaction.message.author.id]) == false) {
@@ -270,7 +267,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
             }
-        //If custom emoji modify board message to properly send it
+            //If custom emoji modify board message to properly send it
         } else {
             try {
                 boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel)
@@ -304,12 +301,11 @@ client.on('messageReactionRemove', async (reaction, user) => {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
             }
-        //If custom emoji modify board message to properly send it
+            //If custom emoji modify board message to properly send it
         } else {
             try {
                 //Calling board message on an existing message will edit it
                 boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel)
-                console.log('AHHHHHHH')
             } catch (error) {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
@@ -340,16 +336,20 @@ function createEmbed(author, avatar, msgLink, message) {
 async function boardMessage(schema, funcMessage, reactCount, emoji, channelID) {
     //Check if the message is already in the database
     const used = await checkIfUsed(schema, ['original'], [funcMessage.id]);
-
-        //Fetch the channel using the channel id
-        channelUsable = await client.channels.fetch(channelID)
-        //Prevent react count as being shown as "null" when there are no reactions
-        if (reactCount == null) {
-            reactCount = 0
-        }
-
+    serverSettings = settingsDict[funcMessage.guild.id]
+    minReacts = serverSettings[4]
+    //Fetch the channel using the channel id
+    channelUsable = await client.channels.fetch(channelID)
+    //Prevent react count as being shown as "null" when there are no reactions
+    if (reactCount == null) {
+        reactCount = 0
+    }
+    try {
         //If message is not already in database, send message in board channel
-        if (!used) {
+        if (!used && reactCount >= minReacts) {
+
+
+
             //Create the embed for the message
             const boardEmbed = createEmbed(funcMessage.member.user.globalName, funcMessage.author.displayAvatarURL(), funcMessage.url, funcMessage.content);
             const botMessage = await channelUsable.send({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: [boardEmbed] });
@@ -371,7 +371,7 @@ async function boardMessage(schema, funcMessage, reactCount, emoji, channelID) {
                 console.error('Error adding post:', err);
             }
 
-        //If message is already in database (else), edit the existing board message
+            //If message is already in database (else), edit the existing board message
         } else {
             //Create the embed for the message
             const boardEmbed = createEmbed(funcMessage.member.user.globalName, funcMessage.author.displayAvatarURL(), funcMessage.url, funcMessage.content);
@@ -386,7 +386,10 @@ async function boardMessage(schema, funcMessage, reactCount, emoji, channelID) {
                 console.log("edited embed");
             }
         }
+    } catch (error) {
+        console.log("SHITTY ERROR: " + error)
     }
+}
 
 
 async function checkChannelValidity(channelID) {
@@ -507,7 +510,7 @@ async function applyServerSettings(serverID) {
     const used = await checkIfUsed(settingsSchema, ['serverID'], [serverID])
     if (used) {
         console.log("Server already in database")
-    //If server is not in database, set up an entry and add it
+        //If server is not in database, set up an entry and add it
     } else {
         console.log("Server not in database")
         const newPost = new settingsSchema({
@@ -517,6 +520,7 @@ async function applyServerSettings(serverID) {
             goodEmoji: '🍉',
             badEmoji: '🍄',
             minReacts: "3",
+            adminRole: '0',
         });
         await newPost.save();
 
@@ -524,18 +528,11 @@ async function applyServerSettings(serverID) {
     //Pull server's settings from the database
     serverSettings = await settingsSchema.findOne({ "serverID": serverID })
     //Add the settings to a dictionary so the database doesnt need to be called everytime settings are needed
-    settingsDict[serverID] = [serverSettings.goodChannel, serverSettings.badChannel, serverSettings.goodEmoji, serverSettings.badEmoji, serverSettings.minReacts]
+    settingsDict[serverID] = [serverSettings.goodChannel, serverSettings.badChannel, serverSettings.goodEmoji, serverSettings.badEmoji, serverSettings.minReacts, serverSettings.adminRole]
 }
 
 
 async function handleResponses(message) {
-    if(message.content == "test"){
-        if((message.guild.members.cache.get(message.author.id).roles.cache.some(r => r.name === 'goop'))){
-            message.channel.send("has role")
-        }else{
-            message.channel.send("no role")
-        }
-    }
 
     //Shows all the commands for the bot
     if (message.content == prefix + " help") {
@@ -544,73 +541,6 @@ async function handleResponses(message) {
             .setTitle("**General Commands:**")
             .setDescription(prefix + " score")
         message.channel.send({ embeds: [messageEmbed] })
-    }
-
-    //Shows all the commands for changing the bot's settings
-    if (message.content == prefix + " help settings") {
-        const messageEmbed = new EmbedBuilder()
-            .setColor(0x0099FF)
-            .setTitle("**Server Settings Commands:**")
-            .setDescription("**Channels:**\n" + prefix + " set-good-channel [CHANNEL ID]\n" + prefix + " set-bad-channel [CHANNEL ID]\n\n **Reactions:**\n" + prefix + " set-good-emoji\n" + prefix + " set-bad-emoji\n" + prefix + " set-min-reacts [AMOUNT]")
-        message.channel.send({ embeds: [messageEmbed] })
-    }
-
-    //Sets good channel by channel id
-    if (message.content.substr(0, prefix.length + " set-good-channel".length) == prefix + " set-good-channel") {
-        try {
-            //Get the channel id by slicing the message and fetch the channel with it
-            await client.channels.fetch(message.content.substr(prefix.length + " set-good-channel".length + 1));
-            //Update the good channel in database
-            updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'goodChannel', message.content.substr(prefix.length + " set-good-channel".length + 1))
-            //Apply the new settings to the server
-            applyServerSettings(message.guild.id)
-            message.reply("Updated " + settingsDict[message.guild.id][2] + " channel")
-        } catch (error) {
-            message.reply("Please enter a valid channel")
-            console.log(error)
-        }
-    }
-
-    //Sets bad channel by channel id
-    if (message.content.substr(0, prefix.length + " set-bad-channel".length) == prefix + " set-bad-channel") {
-        try {
-            //Get the channel id by slicing the message and fetch the channel with it
-            await client.channels.fetch(message.content.substr(prefix.length + " set-bad-channel".length + 1));
-            //Update the bad channel in database
-            updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'badChannel', message.content.substr(prefix.length + " set-bad-channel".length + 1))
-            //Apply the new settings to the server
-            applyServerSettings(message.guild.id)
-            message.reply("Updated " + settingsDict[message.guild.id][3] + " channel")
-        } catch (error) {
-            message.reply("Please enter a valid channel")
-            console.log(error)
-        }
-    }
-
-    //set good emoji command, linked to code in messageReactionAdd
-    if (message.content == prefix + " set-good-emoji") {
-        message.channel.send("React with the emoji you want to use for the good board")
-    }
-
-    //set bad emoji command, linked to code in messageReactionAdd
-    if (message.content == prefix + " set-bad-emoji") {
-        message.channel.send("React with the emoji you want to use for the bad board")
-    }
-
-    if (message.content.substr(0, prefix.length + " set-min-reacts".length) == prefix + " set-min-reacts") {
-
-        //Slice the message to get the number the user entered
-        reactNum = parseInt(message.content.substr(prefix.length + " set-min-reacts".length + 1))
-        //Check to see if the number is valid
-        if (!isNaN(reactNum)) {
-            //Update minimum reactions in database
-            updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'minReacts', message.content.substr(prefix.length + " set-min-reacts".length + 1))
-            //Apply the new settings to the server
-            applyServerSettings(message.guild.id)
-            message.reply("Set minimum reactions to " + message.content.substr(prefix.length + " set-min-reacts".length + 1) + ".")
-        } else {
-            console.log("Not a valid number.")
-        }
     }
 
     if (message.content == prefix + " score") {
@@ -626,17 +556,107 @@ async function handleResponses(message) {
             const badPoints = await pullFromSchema(scoreSchema, ['serverID', 'userID'], [message.guild.id, message.author.id], 'badPoints')
             //Get total score by subtracting bad points from good points
             const total = parseInt(goodPoints) - parseInt(badPoints)
-            
+
             //Make embed and send
             const messageEmbed = new EmbedBuilder()
                 .setColor(0x0099FF)
                 .setTitle(message.member.user.globalName + "'s Social Credit Score:\n\nGood:" + goodPoints + "\nBad: " + badPoints + "\n\n**Total: " + total.toString() + "**")
             message.channel.send({ embeds: [messageEmbed] });
         }
+    }
 
+    // admin only commands
+    serverSettings = settingsDict[message.guild.id]
+    adminRole = serverSettings[5]
+    const member = message.guild.members.cache.get(message.author.id);
+
+    if (adminRole == '0' || member.roles.cache.has(adminRole)) {
+        //Shows all the commands for changing the bot's settings
+        if (message.content == prefix + " help settings") {
+            const messageEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle("**Server Settings Commands:**")
+                .setDescription("**Channels:**\n" + prefix + " set-good-channel [CHANNEL ID]\n" + prefix + " set-bad-channel [CHANNEL ID]\n\n **Reactions:**\n" + prefix + " set-good-emoji\n" + prefix + " set-bad-emoji\n" + prefix + " set-min-reacts [AMOUNT]")
+            message.channel.send({ embeds: [messageEmbed] })
+        }
+
+        //Sets good channel by channel id
+        if (message.content.substr(0, prefix.length + " set-good-channel".length) == prefix + " set-good-channel") {
+            try {
+                //Get the channel id by slicing the message and fetch the channel with it
+                await client.channels.fetch(message.content.substr(prefix.length + " set-good-channel".length + 1));
+                //Update the good channel in database
+                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'goodChannel', message.content.substr(prefix.length + " set-good-channel".length + 1))
+                //Apply the new settings to the server
+                applyServerSettings(message.guild.id)
+                message.reply("Updated " + settingsDict[message.guild.id][2] + " channel")
+            } catch (error) {
+                message.reply("Please enter a valid channel")
+                console.log(error)
+            }
+        }
+
+        //Sets bad channel by channel id
+        if (message.content.substr(0, prefix.length + " set-bad-channel".length) == prefix + " set-bad-channel") {
+            try {
+                //Get the channel id by slicing the message and fetch the channel with it
+                await client.channels.fetch(message.content.substr(prefix.length + " set-bad-channel".length + 1));
+                //Update the bad channel in database
+                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'badChannel', message.content.substr(prefix.length + " set-bad-channel".length + 1))
+                //Apply the new settings to the server
+                applyServerSettings(message.guild.id)
+                message.reply("Updated " + settingsDict[message.guild.id][3] + " channel")
+            } catch (error) {
+                message.reply("Please enter a valid channel")
+                console.log(error)
+            }
+        }
+
+        //set good emoji command, linked to code in messageReactionAdd
+        if (message.content == prefix + " set-good-emoji") {
+            message.channel.send("React with the emoji you want to use for the good board")
+        }
+
+        //set bad emoji command, linked to code in messageReactionAdd
+        if (message.content == prefix + " set-bad-emoji") {
+            message.channel.send("React with the emoji you want to use for the bad board")
+        }
+
+        if (message.content.substr(0, prefix.length + " set-min-reacts".length) == prefix + " set-min-reacts") {
+
+            //Slice the message to get the number the user entered
+            reactNum = parseInt(message.content.substr(prefix.length + " set-min-reacts".length + 1))
+            //Check to see if the number is valid
+            if (!isNaN(reactNum)) {
+                //Update minimum reactions in database
+                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'minReacts', message.content.substr(prefix.length + " set-min-reacts".length + 1))
+                //Apply the new settings to the server
+                applyServerSettings(message.guild.id)
+                message.reply("Set minimum reactions to " + message.content.substr(prefix.length + " set-min-reacts".length + 1) + ".")
+            } else {
+                console.log("Not a valid number.")
+            }
+        }
+
+        if (message.content.substr(0, prefix.length + " set-admin-role".length) == prefix + " set-admin-role") {
+            try {
+                //Get the channel id by slicing the message and fetch the channel with it
+                //Update the bad channel in database
+                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'adminRole', message.content.substr(prefix.length + " set-admin-role".length + 1))
+                //Apply the new settings to the server
+                applyServerSettings(message.guild.id)
+                message.reply("Updated admin role")
+            } catch (error) {
+                message.reply("Please enter a valid role")
+                console.log(error)
+            }
+        }
 
 
     }
+
+
+
 
 
 }
