@@ -1,13 +1,13 @@
 
 
 require('dotenv').config();
-const { Client, IntentsBitField, Partials, EmbedBuilder } = require('discord.js');
+const { Client, IntentsBitField, Partials, EmbedBuilder, AttachmentBuilder, messageLink } = require('discord.js');
 const mongoose = require('mongoose');
 token = process.env.TOKEN
 dbtoken = process.env.DB_TOKEN
 
 prefix = '!sc' // You can set this to whatever you want
-botID = "1308539513198608494"
+botID = "1308539513198608494" // set this to your bot id
 settingsDict = {} // set up as key = GuildID, values = {goodChannel, badChannel, goodEmoji, badEmoji, minReacts, adminRole}
 
 
@@ -113,7 +113,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
 
     //Check if the reaction matches the server's bad emoji
-    if (reaction.emoji.name === badEmoji) {
+    if (reaction.emoji.name == badEmoji) {
 
         //Check for if channel is not set (0 is the default value)
         if (badChannel == '0') {
@@ -127,11 +127,11 @@ client.on('messageReactionAdd', async (reaction, user) => {
             if (reaction.count >= minReacts && reaction.count != null) {
 
                 //Check for if server emoji is a custom emoji
-                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === badEmoji)
+                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name == badEmoji)
                 console.log(emojiCheck)
                 if (emojiCheck == undefined) {
                     try {
-                        boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel)
+                        boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel, true)
                     } catch (error) {
                         console.log(error)
                         reaction.message.channel.send("Could not send message to board, was the channel deleted?")
@@ -139,7 +139,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
                     //If custom emoji modify board message to properly send it
                 } else {
                     try {
-                        boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel)
+                        boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel, true)
                     } catch (error) {
                         console.log(error)
                         reaction.message.channel.send("Could not send message to board, was the channel deleted?")
@@ -153,7 +153,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
 
     //Check if the reaction matches the server's good emoji
-    if (reaction.emoji.name === goodEmoji) {
+    if (reaction.emoji.name == goodEmoji) {
         //Check for if channel is not set (0 is the default value)
         if (goodChannel == '0') {
             reaction.message.channel.send("You currently have no channel set for " + goodEmoji + "s, set one with " + prefix + " set-good-channel")
@@ -165,11 +165,12 @@ client.on('messageReactionAdd', async (reaction, user) => {
             if (reaction.count >= minReacts && reaction.count != null) {
 
                 //Check for if server emoji is a custom emoji
-                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === goodEmoji)
+                const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name == goodEmoji)
                 console.log(emojiCheck)
                 if (emojiCheck == undefined) {
                     try {
-                        boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel)
+                        console.log("sent good board message attempt")
+                        boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel, true)
                     } catch (error) {
                         console.log(error)
                         reaction.message.channel.send("Could not send message to board, was the channel deleted?")
@@ -177,7 +178,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
                     //If custom emoji modify board message to properly send it
                 } else {
                     try {
-                        boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel)
+                        console.log("sent good board message attempt")
+                        boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel, true)
                     } catch (error) {
                         console.log(error)
                         reaction.message.channel.send("Could not send message to board, was the channel deleted?")
@@ -253,16 +255,16 @@ client.on('messageReactionRemove', async (reaction, user) => {
     }
 
     //Check if the removed reaction matches the server's bad emoji
-    if (reaction.emoji.name === badEmoji) {
+    if (reaction.emoji.name == badEmoji) {
         console.log(`${reaction.message.author} shroomed message : "${reaction.message.content}"`);
         console.log(`this message has ${reaction.count} shrooms`);
 
         //Check for if server emoji is a custom emoji
-        const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === badEmoji)
+        const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name == badEmoji)
         console.log(emojiCheck)
         if (emojiCheck == undefined) {
             try {
-                boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel)
+                boardMessage(badSchema, reaction.message, reaction.count, badEmoji, badChannel, true)
             } catch (error) {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
@@ -270,7 +272,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
             //If custom emoji modify board message to properly send it
         } else {
             try {
-                boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel)
+                boardMessage(badSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", badChannel, true)
             } catch (error) {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
@@ -286,17 +288,17 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 
 
-    if (reaction.emoji.name === goodEmoji) {
+    if (reaction.emoji.name == goodEmoji) {
         console.log(`${reaction.message.author} meloned message : "${reaction.message.content}"`);
         console.log(`this message has ${reaction.count} melons`);
 
         //Check for if server emoji is a custom emoji
-        const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name === goodEmoji)
+        const emojiCheck = await reaction.message.guild.emojis.cache.find(emoji => emoji.name == goodEmoji)
         console.log(emojiCheck)
         if (emojiCheck == undefined) {
             try {
                 //Calling board message on an existing message will edit it
-                boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel)
+                boardMessage(goodSchema, reaction.message, reaction.count, goodEmoji, goodChannel, true)
             } catch (error) {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
@@ -305,7 +307,7 @@ client.on('messageReactionRemove', async (reaction, user) => {
         } else {
             try {
                 //Calling board message on an existing message will edit it
-                boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel)
+                boardMessage(goodSchema, reaction.message, reaction.count, "<:" + emojiCheck.name + ":" + emojiCheck.id + ">", goodChannel, true)
             } catch (error) {
                 console.log(error)
                 reaction.message.channel.send("Could not update board message, was it deleted?")
@@ -322,18 +324,110 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 });
 
-//functions
-function createEmbed(author, avatar, msgLink, message) {
-    embed = new EmbedBuilder()
-        .setColor(0x0099FF)
-        .setURL('https://discord.js.org/')
-        .setAuthor({ name: author, iconURL: avatar, url: msgLink })
-        .setDescription(message)
-        .setTimestamp()
-    return embed
+
+function createEmbed(message) {
+
+    let compatibleAttachments = []
+    if (message.attachments.size > 0) {
+        // Loop through all attachments
+        message.attachments.forEach((attachment) => {
+            // Output the attachment URL and content type (MIME type)
+            if (attachment.contentType.includes("image")) {
+                compatibleAttachments.push(attachment.url)
+            }
+        });
+    }
+
+    if (message.embeds.length > 0) {
+        const embed = message.embeds[0]
+        console.log("message has embed")
+        if (embed.video != null && embed.video.url.includes("media.tenor")) {
+            //Restructure the link into something actually usable by the embed, tenor uses standard formatting for their
+            //gif links so you can convert the share link into the gif link using that
+            const imageUrl = embed.video.url.replace(".mp4", ".gif").replace("AAAPo", "AAAAd").replace("media.tenor.com", "media1.tenor.com/m")
+            compatibleAttachments.push(imageUrl)
+        }
+        else if (embed.image != null) {
+            const imageUrl = embed.image.url;
+        } else if (embed.thumbnail != null) {
+
+            compatibleAttachments.push(embed.thumbnail.url)
+        } else {
+            console.log("theres nothing bro theres nothing")
+        }
+    }
+    //console.log(compatibleAttachments)
+    //console.log(compatibleAttachments.length)
+
+    let embedArray = []
+    if (message.content == '' && compatibleAttachments.length == 1) {
+        console.log("found empty message and only 1 attachment")
+        embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setURL(message.url)
+            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setImage(compatibleAttachments[0])
+            .setTimestamp(message.createdTimestamp)
+        embedArray.push(embed)
+    } else if (message.content == '' && compatibleAttachments.length > 1 || message.content == undefined && compatibleAttachments.length == 0) {
+        console.log("found empty message and multiple or no attachments")
+        embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setURL(message.url)
+            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setTimestamp(message.createdTimestamp)
+        embedArray.push(embed)
+    } else if (compatibleAttachments.length == 1) {
+        console.log("found message and only 1 attachment")
+        embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setURL(message.url)
+            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setImage(compatibleAttachments[0])
+            .setDescription(message.content)
+            .setTimestamp(message.createdTimestamp)
+        embedArray.push(embed)
+    } else if (compatibleAttachments.length > 1 || compatibleAttachments.length == 0) {
+        console.log("found message and multiple or no attachments")
+        embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setURL(message.url)
+            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setDescription(message.content)
+            .setTimestamp(message.createdTimestamp)
+        embedArray.push(embed)
+    }
+    /*discord doesnt actually natively let you do multiple images in one embed
+    but you can do a weird workaround by setting multiple embeds with the same url
+    which is what im doing here*/
+    if (compatibleAttachments.length > 0 && compatibleAttachments.length != 1) {
+        console.log("multiple images found, looping")
+        for (let i = 0; i < compatibleAttachments.length; i++) {
+            if (i <= 3) {
+                embed = new EmbedBuilder()
+                    .setURL(message.url)
+                    .setImage(compatibleAttachments[i])
+                embedArray.push(embed)
+            } else if (i <= 7) {
+                embed = new EmbedBuilder()
+                    //even with the trick you can only do 4 images per embed so it adds a / here to start a new message and allow 4 more images
+                    .setURL(message.url + "/")
+                    .setImage(compatibleAttachments[i])
+                embedArray.push(embed)
+                //any remaining messages accounted for here since max upload limit is 10
+            } else {
+                embed = new EmbedBuilder()
+                    .setURL(message.url + "//")
+                    .setImage(compatibleAttachments[i])
+                embedArray.push(embed)
+            }
+        }
+    }
+    return embedArray
 }
 
-async function boardMessage(schema, funcMessage, reactCount, emoji, channelID) {
+// reactcount is an irrelevant parameter, remove at some point
+async function boardMessage(schema, funcMessage, reactCount, emoji, channelID, addToDatabase) {
     //Check if the message is already in the database
     const used = await checkIfUsed(schema, ['original'], [funcMessage.id]);
     serverSettings = settingsDict[funcMessage.guild.id]
@@ -346,48 +440,53 @@ async function boardMessage(schema, funcMessage, reactCount, emoji, channelID) {
     }
     try {
         //If message is not already in database, send message in board channel
-        if (!used && reactCount >= minReacts) {
+        if (!used && reactCount >= minReacts || !addToDatabase) {
 
 
 
             //Create the embed for the message
-            const boardEmbed = createEmbed(funcMessage.member.user.globalName, funcMessage.author.displayAvatarURL(), funcMessage.url, funcMessage.content);
-            const botMessage = await channelUsable.send({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: [boardEmbed] });
+            let boardEmbed = createEmbed(funcMessage);
+            const botMessage = await channelUsable.send({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: boardEmbed });
             console.log("sent embed");
 
-            //Setup post information to send into database
-            const newPost = new schema({
-                serverID: funcMessage.guild.id,
-                userID: funcMessage.author.id,
-                original: funcMessage.id,
-                board: botMessage.id,
-                reactions: reactCount,
-            });
+            if (addToDatabase) {
+                //Setup post information to send into database
+                const newPost = new schema({
+                    serverID: funcMessage.guild.id,
+                    userID: funcMessage.author.id,
+                    original: funcMessage.id,
+                    board: botMessage.id,
+                    reactions: reactCount,
+                });
 
-            //Save post information to database
-            try {
-                await newPost.save();
-            } catch (err) {
-                console.error('Error adding post:', err);
+
+                //Save post information to database
+                try {
+                    await newPost.save();
+                } catch (err) {
+                    console.error('Error adding post:', err);
+                }
             }
-
             //If message is already in database (else), edit the existing board message
         } else {
             //Create the embed for the message
-            const boardEmbed = createEmbed(funcMessage.member.user.globalName, funcMessage.author.displayAvatarURL(), funcMessage.url, funcMessage.content);
+            let boardEmbed = createEmbed(funcMessage);
             //Pull the board message ID from the database using the ID of the original message
             const msgId = await pullFromSchema(schema, ['original'], [funcMessage.id], 'board');
 
             if (msgId) {
                 const msg = await channelUsable.messages.fetch(msgId);
-                msg.edit({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: [boardEmbed] });
+                msg.edit({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: boardEmbed });
                 //Update post in database
-                updateSchemaEntry(schema, ['original'], [funcMessage.id], 'reactions', reactCount.toString())
+                if (addToDatabase) {
+                    updateSchemaEntry(schema, ['original'], [funcMessage.id], 'reactions', reactCount.toString())
+                }
                 console.log("edited embed");
             }
         }
     } catch (error) {
         console.log("SHITTY ERROR: " + error)
+        console.log(error.stack)
     }
 }
 
@@ -531,15 +630,58 @@ async function applyServerSettings(serverID) {
     settingsDict[serverID] = [serverSettings.goodChannel, serverSettings.badChannel, serverSettings.goodEmoji, serverSettings.badEmoji, serverSettings.minReacts, serverSettings.adminRole]
 }
 
+async function findMessageById(server, msgID) {
+    for (const channel of server.channels.cache.values()) {
+        if (channel.isTextBased()) { // Ensures it's a text channel
+            try {
+                const message = await channel.messages.fetch(msgID);
+                if (message) return message;
+            } catch (error) {
+                // Ignore errors (e.g., message not found in that channel)
+                if (error.code !== 10008) console.error(error); // 10008 = Unknown Message
+            }
+        }
+    }
+    return null; // Message not found in any channel
+}
+
+async function findLargestInSchema(server_id, schema) {
+    try {
+        const result = await schema.aggregate([
+            {
+                $match: { serverID: server_id } // Match documents with the specified serverID
+            },
+            {
+                $addFields: {
+                    reactionsNumeric: { $toDouble: "$reactions" } // Convert reactions to a numeric value if needed
+                }
+            },
+            {
+                $sort: { reactionsNumeric: -1 } // Sort by reactions in descending order
+            },
+            {
+                $limit: 1 // Limit to the top 1 document
+            }
+        ]);
+        return result[0];        // Return the first item as the result
+    } catch (error) {
+        console.error('Error finding document:', error);
+        return null;  // Return null or a default value if there's an error
+    }
+}
+
+
 
 async function handleResponses(message) {
+    serverSettings = settingsDict[message.guild.id]
+
 
     //Shows all the commands for the bot
     if (message.content == prefix + " help") {
         const messageEmbed = new EmbedBuilder()
             .setColor(0x0099FF)
             .setTitle("**General Commands:**")
-            .setDescription(prefix + " score")
+            .setDescription(prefix + " score\n" + prefix + " top-good\n" + prefix + " top-bad")
         message.channel.send({ embeds: [messageEmbed] })
     }
 
@@ -565,8 +707,23 @@ async function handleResponses(message) {
         }
     }
 
+
+    // STILL WORKING ON
+    if (message.content == prefix + " top-good") {
+        const largest = await findLargestInSchema(message.guild.id, goodSchema)
+        const msg = await findMessageById(message.guild, largest.original)
+        boardMessage(goodSchema, msg, largest.reactions, serverSettings[2], message.channel.id, false)
+    }
+
+    if (message.content == prefix + " top-bad") {
+        const largest = await findLargestInSchema(message.guild.id, badSchema)
+        const msg = await findMessageById(message.guild, largest.original)
+        boardMessage(badSchema, msg, largest.reactions, serverSettings[3], message.channel.id, false)
+    }
+
+
     // admin only commands
-    serverSettings = settingsDict[message.guild.id]
+
     adminRole = serverSettings[5]
     const member = message.guild.members.cache.get(message.author.id);
 
@@ -660,4 +817,3 @@ async function handleResponses(message) {
 
 
 }
-
