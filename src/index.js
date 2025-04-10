@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 token = process.env.TOKEN
 dbtoken = process.env.DB_TOKEN
 
-prefix = '!sc' // You can set this to whatever you want
+prefix = '!sx' // You can set this to whatever you want
 botID = "" // pulled automatically on startup, dont worry about setting this
 settingsDict = {} // set up as key = GuildID, values = {goodChannel, badChannel, goodEmoji, badEmoji, minReacts, adminRole}
 
@@ -364,7 +364,7 @@ function createEmbed(message) {
 
             compatibleAttachments.push(embed.thumbnail.url)
         } else {
-            console.log("theres nothing bro theres nothing")
+            console.log("theres nothing")
         }
     }
 
@@ -884,7 +884,7 @@ async function handleResponses(message) {
             boardMessage(badSchema, msg, post.reactions, serverSettings[3], message.channel.id, false)
         }
     } catch (error) {
-        console.log("something messed up brah")
+        console.log("Something went wrong")
         console.log(error)
     }
 
