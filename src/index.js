@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 token = process.env.TOKEN
 dbtoken = process.env.DB_TOKEN
 
-prefix = '!sx' // You can set this to whatever you want
+prefix = '!sc' // You can set this to whatever you want
 botID = "" // pulled automatically on startup, dont worry about setting this
 settingsDict = {} // set up as key = GuildID, values = {goodChannel, badChannel, goodEmoji, badEmoji, minReacts, adminRole}
 
