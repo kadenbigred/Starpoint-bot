@@ -1,13 +1,13 @@
 
 
 require('dotenv').config();
-const { Client, IntentsBitField, Partials, EmbedBuilder, AttachmentBuilder, messageLink } = require('discord.js');
+const { Client, IntentsBitField, Partials, EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 token = process.env.TOKEN
 dbtoken = process.env.DB_TOKEN
 
-prefix = '!sc' // You can set this to whatever you want
-botID = "1308539513198608494" // set this to your bot id
+prefix = '!sx' // You can set this to whatever you want
+botID = "" // pulled automatically on startup, dont worry about setting this
 settingsDict = {} // set up as key = GuildID, values = {goodChannel, badChannel, goodEmoji, badEmoji, minReacts, adminRole}
 
 
@@ -46,7 +46,7 @@ client.login(token);
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-
+    botID = client.user.id
     const guilds = client.guilds.cache;
 
 
@@ -324,8 +324,15 @@ client.on('messageReactionRemove', async (reaction, user) => {
 
 });
 
+// custom functions
 
 function createEmbed(message) {
+
+    messageURL = message.url
+    messageContent = message.content
+    authorName = message.author.displayName
+    authorAvatar = message.author.displayAvatarURL()
+    messageTimestamp = message.createdTimestamp
 
     let compatibleAttachments = []
     if (message.attachments.size > 0) {
@@ -338,17 +345,21 @@ function createEmbed(message) {
         });
     }
 
+
     if (message.embeds.length > 0) {
         const embed = message.embeds[0]
         console.log("message has embed")
+        console.log(embed.video.url)
         if (embed.video != null && embed.video.url.includes("media.tenor")) {
             //Restructure the link into something actually usable by the embed, tenor uses standard formatting for their
-            //gif links so you can convert the share link into the gif link using that
-            const imageUrl = embed.video.url.replace(".mp4", ".gif").replace("AAAPo", "AAAAd").replace("media.tenor.com", "media1.tenor.com/m")
+            //gif links so we can convert the share link into the gif link using that
+            const imageUrl = embed.video.url.replace(".mp4", ".gif").replace("AAAPo", "AAAAd").replace("media.tenor.com", "c.tenor.com")
+            console.log(imageUrl)
             compatibleAttachments.push(imageUrl)
         }
         else if (embed.image != null) {
             const imageUrl = embed.image.url;
+            //EMBED.THUMBNAIL WORKS FOR YOUTUBE THUMBNAILS
         } else if (embed.thumbnail != null) {
 
             compatibleAttachments.push(embed.thumbnail.url)
@@ -356,45 +367,48 @@ function createEmbed(message) {
             console.log("theres nothing bro theres nothing")
         }
     }
-    //console.log(compatibleAttachments)
-    //console.log(compatibleAttachments.length)
 
     let embedArray = []
-    if (message.content == '' && compatibleAttachments.length == 1) {
+
+    //runs if the message has no content and only one attachment
+    if (messageContent == '' && compatibleAttachments.length == 1) {
         console.log("found empty message and only 1 attachment")
         embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setURL(message.url)
-            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setURL(messageURL)
+            .setAuthor({ name: authorName, iconURL: authorAvatar, url: messageURL })
             .setImage(compatibleAttachments[0])
-            .setTimestamp(message.createdTimestamp)
+            .setTimestamp(messageTimestamp)
         embedArray.push(embed)
-    } else if (message.content == '' && compatibleAttachments.length > 1 || message.content == undefined && compatibleAttachments.length == 0) {
+    //runs if the message has no content and there are multiple or no attachments
+    } else if (messageContent == '' && compatibleAttachments.length > 1 || messageContent == undefined && compatibleAttachments.length == 0) {
         console.log("found empty message and multiple or no attachments")
         embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setURL(message.url)
-            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
-            .setTimestamp(message.createdTimestamp)
+            .setURL(messageURL)
+            .setAuthor({ name: authorName, iconURL: authorAvatar, url: messageURL })
+            .setTimestamp(messageTimestamp)
         embedArray.push(embed)
+    //runs if message has only 1 attachment
     } else if (compatibleAttachments.length == 1) {
         console.log("found message and only 1 attachment")
         embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setURL(message.url)
-            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
+            .setURL(messageURL)
+            .setAuthor({ name: authorName, iconURL: authorAvatar, url: messageURL })
             .setImage(compatibleAttachments[0])
-            .setDescription(message.content)
-            .setTimestamp(message.createdTimestamp)
+            .setDescription(messageContent)
+            .setTimestamp(messageTimestamp)
         embedArray.push(embed)
+    //runs if message has more than one or no attachments    
     } else if (compatibleAttachments.length > 1 || compatibleAttachments.length == 0) {
         console.log("found message and multiple or no attachments")
         embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setURL(message.url)
-            .setAuthor({ name: message.author.globalName, iconURL: message.author.displayAvatarURL(), url: message.url })
-            .setDescription(message.content)
-            .setTimestamp(message.createdTimestamp)
+            .setURL(messageURL)
+            .setAuthor({ name: authorName, iconURL: authorAvatar, url: messageURL })
+            .setDescription(messageContent)
+            .setTimestamp(messageTimestamp)
         embedArray.push(embed)
     }
     /*discord doesnt actually natively let you do multiple images in one embed
@@ -426,7 +440,34 @@ function createEmbed(message) {
     return embedArray
 }
 
-// reactcount is an irrelevant parameter, remove at some point
+// Possible video support, doesnt work due to discord's bot filesize limitations.
+
+// async function createAttachments(attachments){
+//     let compatibleAttachments = []
+//     try{
+//         if (attachments.size > 0) {
+//             // Loop through all attachments
+//             attachments.forEach((attachment) => {
+//                 // Output the attachment URL and content type (MIME type)
+//                 console.log(attachment.contentType)
+//                 if (attachment.contentType.includes("video")) {
+//                     console.log("found video")
+//                     compatibleAttachments.push(new AttachmentBuilder(attachment.url))
+//                 }
+//             });
+//         }
+//     } catch (error) {
+//         if (error.message.includes('Request entity too large')){
+//             console.log("file size too large")
+//         }else{
+//             console.log(error)
+//         }
+//     }
+    
+//     return compatibleAttachments
+// }
+
+
 async function boardMessage(schema, funcMessage, reactCount, emoji, channelID, addToDatabase) {
     //Check if the message is already in the database
     const used = await checkIfUsed(schema, ['original'], [funcMessage.id]);
@@ -446,7 +487,7 @@ async function boardMessage(schema, funcMessage, reactCount, emoji, channelID, a
 
             //Create the embed for the message
             let boardEmbed = createEmbed(funcMessage);
-            const botMessage = await channelUsable.send({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: boardEmbed });
+            const botMessage = await channelUsable.send({ content: "**" + reactCount + "** " + emoji + " | " + funcMessage.url, embeds: boardEmbed});
             console.log("sent embed");
 
             if (addToDatabase) {
@@ -485,7 +526,8 @@ async function boardMessage(schema, funcMessage, reactCount, emoji, channelID, a
             }
         }
     } catch (error) {
-        console.log("SHITTY ERROR: " + error)
+        console.log("SHITTY ERROR: ")
+        console.log(error)
         console.log(error.stack)
     }
 }
@@ -645,7 +687,7 @@ async function findMessageById(server, msgID) {
     return null; // Message not found in any channel
 }
 
-async function findLargestInSchema(server_id, schema) {
+async function findLargestOrderInSchema(server_id, schema, num) {
     try {
         const result = await schema.aggregate([
             {
@@ -658,12 +700,9 @@ async function findLargestInSchema(server_id, schema) {
             },
             {
                 $sort: { reactionsNumeric: -1 } // Sort by reactions in descending order
-            },
-            {
-                $limit: 1 // Limit to the top 1 document
             }
         ]);
-        return result[0];        // Return the first item as the result
+        return result[num];        // Return the first item as the result
     } catch (error) {
         console.error('Error finding document:', error);
         return null;  // Return null or a default value if there's an error
@@ -681,44 +720,172 @@ async function handleResponses(message) {
         const messageEmbed = new EmbedBuilder()
             .setColor(0x0099FF)
             .setTitle("**General Commands:**")
-            .setDescription(prefix + " score\n" + prefix + " top-good\n" + prefix + " top-bad")
+            .setDescription(prefix + " score\n" + prefix + " top-good [NUM (optional)] \n" + prefix + " top-bad [NUM (optional)]\n" + prefix + " random\n" + prefix + " random-good\n" + prefix + " random-bad")
         message.channel.send({ embeds: [messageEmbed] })
     }
 
-    if (message.content == prefix + " score") {
-        //Check if the user is entered into the database
-        if (await checkIfUsed(scoreSchema, ['serverID', 'userID'], [message.guild.id, message.author.id]) == false) {
-            console.log("New user detected, registering them to database")
-            registerUser(message.guild.id, message.author.id)
-            message.channel.send("You have no score!")
-        } else {
-            console.log("User found in database!")
-            //Pull points from database
-            const goodPoints = await pullFromSchema(scoreSchema, ['serverID', 'userID'], [message.guild.id, message.author.id], 'goodPoints')
-            const badPoints = await pullFromSchema(scoreSchema, ['serverID', 'userID'], [message.guild.id, message.author.id], 'badPoints')
-            //Get total score by subtracting bad points from good points
-            const total = parseInt(goodPoints) - parseInt(badPoints)
+    if (message.content.substr(0, prefix.length + " score".length) == prefix + " score") {
+        try {
 
-            //Make embed and send
-            const messageEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle(message.member.user.globalName + "'s Social Credit Score:\n\nGood:" + goodPoints + "\nBad: " + badPoints + "\n\n**Total: " + total.toString() + "**")
-            message.channel.send({ embeds: [messageEmbed] });
+
+            spliced = message.content.substr(prefix.length + " score".length + 1)
+            if (spliced == "") {
+                scoreID = message.author.id
+            } else {
+                scoreID = ""
+                const isNumeric = (string) => Number.isFinite(+string)
+                for (let i = 0; i < message.content.length; i++) {
+                    if (message.content[i] == ">") {
+                        break;
+                    }
+                    if (isNumeric(message.content[i]) && message.content[i] != " ") {
+                        scoreID = scoreID + message.content[i]
+                    }
+                }
+            }
+            let userFetch = message.guild.members.cache.get(scoreID);
+            //Check if the user is entered into the database
+            if (await checkIfUsed(scoreSchema, ['serverID', 'userID'], [message.guild.id, scoreID]) == false) {
+                console.log("New user detected, registering them to database")
+                registerUser(message.guild.id, scoreID)
+                message.channel.send("You have no score!")
+            } else {
+                console.log("User found in database!")
+                //Pull points from database
+                const goodPoints = await pullFromSchema(scoreSchema, ['serverID', 'userID'], [message.guild.id, scoreID], 'goodPoints')
+                const badPoints = await pullFromSchema(scoreSchema, ['serverID', 'userID'], [message.guild.id, scoreID], 'badPoints')
+                //Get total score by subtracting bad points from good points
+                const total = parseInt(goodPoints) - parseInt(badPoints)
+
+                //Make embed and send
+                const messageEmbed = new EmbedBuilder()
+                    .setColor(0x0099FF)
+                    .setTitle(userFetch.user.globalName + "'s Social Credit Score:\n\nGood:" + goodPoints + "\nBad: " + badPoints + "\n\n**Total: " + total.toString() + "**")
+                message.channel.send({ embeds: [messageEmbed] });
+            }
+        } catch (error) {
+            message.channel.send("Could not find user")
         }
     }
 
+    try {
 
-    // STILL WORKING ON
-    if (message.content == prefix + " top-good") {
-        const largest = await findLargestInSchema(message.guild.id, goodSchema)
-        const msg = await findMessageById(message.guild, largest.original)
-        boardMessage(goodSchema, msg, largest.reactions, serverSettings[2], message.channel.id, false)
-    }
 
-    if (message.content == prefix + " top-bad") {
-        const largest = await findLargestInSchema(message.guild.id, badSchema)
-        const msg = await findMessageById(message.guild, largest.original)
-        boardMessage(badSchema, msg, largest.reactions, serverSettings[3], message.channel.id, false)
+        // top good command
+        if (message.content.substr(0, prefix.length + " top-good".length) == prefix + " top-good") {
+            //if the user enters a number, this pulls it
+            spliced = message.content.substr(prefix.length + " top-good".length + 1)
+
+            //gets the total number of good post entries in the database for the server
+            totalin = await goodSchema.countDocuments({serverID: message.guild.id});
+
+            //if user enters no number just display the post with the most good reactions
+            if (spliced == "") {
+                //find post with the largest number of good reactions
+                const largest = await findLargestOrderInSchema(message.guild.id, goodSchema, 0)
+                //pull the message via the message id in the database
+                const msg = await findMessageById(message.guild, largest.original)
+                //make the embed
+                boardMessage(goodSchema, msg, largest.reactions, serverSettings[2], message.channel.id, false)
+            //if user enters a specific number show them the post at that index in the database
+            } else if (parseInt(spliced) - 1 <= totalin) {
+                //find post at requested index
+                const largest = await findLargestOrderInSchema(message.guild.id, goodSchema, parseInt(spliced) - 1)
+                //pull the message via the id in the database
+                const msg = await findMessageById(message.guild, largest.original)
+                //make the embed
+                boardMessage(goodSchema, msg, largest.reactions, serverSettings[2], message.channel.id, false)
+            } else {
+                //if index user requested was outside the range of the database, return this
+                message.channel.send("Number provided is outside of range. There are currently " + totalin + " good posts in the database.")
+            }
+        }
+
+
+        // top bad command
+        if (message.content.substr(0, prefix.length + " top-bad".length) == prefix + " top-bad") {
+            //if the user enters a number, this pulls it
+            spliced = message.content.substr(prefix.length + " top-bad".length + 1)
+
+            //gets the total number of bad post entries in the database for the server
+            totalin = await badSchema.countDocuments({serverID: message.guild.id});
+            
+            //if user enters no number just display the post with the most bad reactions
+            if (spliced == "") {
+                //find post with largest number of bad reactions
+                const largest = await findLargestOrderInSchema(message.guild.id, badSchema, 0)
+                //pull the message via the message id in the database
+                const msg = await findMessageById(message.guild, largest.original)
+                //make the embed
+                boardMessage(badSchema, msg, largest.reactions, serverSettings[3], message.channel.id, false)
+            
+            //if user enters a specific number show them the post at that index in the database
+            } else if (parseInt(spliced) - 1 <= totalin && parseInt(spliced) != 0) {
+                //find post at requested index
+                const largest = await findLargestOrderInSchema(message.guild.id, badSchema, parseInt(spliced) - 1)
+                //pull the message via the message id in the database
+                const msg = await findMessageById(message.guild, largest.original)
+                //create embed & send message
+                boardMessage(badSchema, msg, largest.reactions, serverSettings[3], message.channel.id, false)
+            } else {
+                //if index user requested was outside the range of the database, return this
+                message.channel.send("Number provided is outside of range. There are currently " + totalin + " bad posts in the database.")
+            }
+        }
+
+        //random post command
+        if (message.content == prefix + " random") {
+            //pull random number to decide whether to pull good or bad post
+            chooseType = getRandomInt(0, 1)
+            if (chooseType == 0) {
+                schema = goodSchema
+                emoji = serverSettings[2]
+            } else if (chooseType == 1) {
+                schema = badSchema
+                emoji = serverSettings[3]
+            }
+            //gets the total number of bad/good post entries in the database for the server
+            totalin = await schema.countDocuments({serverID: message.guild.id});
+            //generate index number based on total number of posts
+            randomPost = await getRandomInt(0, totalin - 1)
+            //find post at random index
+            const post = await findLargestOrderInSchema(message.guild.id, schema, randomPost)
+            //pull the message via the message id in the database
+            const msg = await findMessageById(message.guild, post.original)
+            //create embed & send message
+            boardMessage(schema, msg, post.reactions, emoji, message.channel.id, false)
+        }
+
+        //random good post command
+        if (message.content == prefix + " random-good") {
+            //gets total number of good posts
+            totalin = await goodSchema.countDocuments({serverID: message.guild.id});
+            //generate index number based on total number of posts
+            randomPost = await getRandomInt(0, totalin - 1)
+            //find post at random index
+            const post = await findLargestOrderInSchema(message.guild.id, goodSchema, randomPost)
+            //pull the message via the message id in the database
+            const msg = await findMessageById(message.guild, post.original)
+            //create embed & send message
+            boardMessage(goodSchema, msg, post.reactions, serverSettings[2], message.channel.id, false)
+        }
+
+        //random bad post command
+        if (message.content == prefix + " random-bad") {
+            //gets the total number of bad posts
+            totalin = await badSchema.countDocuments({serverID: message.guild.id});
+            //generate index number based on total number of posts
+            randomPost = await getRandomInt(0, totalin - 1)
+            //find post at random index
+            const post = await findLargestOrderInSchema(message.guild.id, badSchema, randomPost)
+            //pull the message via the message id in the database
+            const msg = await findMessageById(message.guild, post.original)
+            //create embed & send message
+            boardMessage(badSchema, msg, post.reactions, serverSettings[3], message.channel.id, false)
+        }
+    } catch (error) {
+        console.log("something messed up brah")
+        console.log(error)
     }
 
 
@@ -726,93 +893,104 @@ async function handleResponses(message) {
 
     adminRole = serverSettings[5]
     const member = message.guild.members.cache.get(message.author.id);
+    try {
 
-    if (adminRole == '0' || member.roles.cache.has(adminRole)) {
-        //Shows all the commands for changing the bot's settings
-        if (message.content == prefix + " help settings") {
-            const messageEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle("**Server Settings Commands:**")
-                .setDescription("**Channels:**\n" + prefix + " set-good-channel [CHANNEL ID]\n" + prefix + " set-bad-channel [CHANNEL ID]\n\n **Reactions:**\n" + prefix + " set-good-emoji\n" + prefix + " set-bad-emoji\n" + prefix + " set-min-reacts [AMOUNT]")
-            message.channel.send({ embeds: [messageEmbed] })
-        }
 
-        //Sets good channel by channel id
-        if (message.content.substr(0, prefix.length + " set-good-channel".length) == prefix + " set-good-channel") {
-            try {
-                //Get the channel id by slicing the message and fetch the channel with it
-                await client.channels.fetch(message.content.substr(prefix.length + " set-good-channel".length + 1));
-                //Update the good channel in database
-                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'goodChannel', message.content.substr(prefix.length + " set-good-channel".length + 1))
-                //Apply the new settings to the server
-                applyServerSettings(message.guild.id)
-                message.reply("Updated " + settingsDict[message.guild.id][2] + " channel")
-            } catch (error) {
-                message.reply("Please enter a valid channel")
-                console.log(error)
+        if (adminRole == '0' || member.roles.cache.has(adminRole)) {
+            //Shows all the commands for changing the bot's settings
+            if (message.content == prefix + " help settings") {
+                const messageEmbed = new EmbedBuilder()
+                    .setColor(0x0099FF)
+                    .setTitle("**Server Settings Commands:**")
+                    .setDescription("**Channels:**\n" + prefix + " set-good-channel [CHANNEL ID]\n" + prefix + " set-bad-channel [CHANNEL ID]\n\n **Reactions:**\n" + prefix + " set-good-emoji\n" + prefix + " set-bad-emoji\n" + prefix + " set-min-reacts [AMOUNT]")
+                message.channel.send({ embeds: [messageEmbed] })
             }
-        }
 
-        //Sets bad channel by channel id
-        if (message.content.substr(0, prefix.length + " set-bad-channel".length) == prefix + " set-bad-channel") {
-            try {
-                //Get the channel id by slicing the message and fetch the channel with it
-                await client.channels.fetch(message.content.substr(prefix.length + " set-bad-channel".length + 1));
-                //Update the bad channel in database
-                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'badChannel', message.content.substr(prefix.length + " set-bad-channel".length + 1))
-                //Apply the new settings to the server
-                applyServerSettings(message.guild.id)
-                message.reply("Updated " + settingsDict[message.guild.id][3] + " channel")
-            } catch (error) {
-                message.reply("Please enter a valid channel")
-                console.log(error)
+            //Sets good channel by channel id
+            if (message.content.substr(0, prefix.length + " set-good-channel".length) == prefix + " set-good-channel") {
+                try {
+                    //Get the channel id by slicing the message and fetch the channel with it
+                    await client.channels.fetch(message.content.substr(prefix.length + " set-good-channel".length + 1));
+                    //Update the good channel in database
+                    updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'goodChannel', message.content.substr(prefix.length + " set-good-channel".length + 1))
+                    //Apply the new settings to the server
+                    applyServerSettings(message.guild.id)
+                    message.reply("Updated " + settingsDict[message.guild.id][2] + " channel")
+                } catch (error) {
+                    message.reply("Please enter a valid channel")
+                    console.log(error)
+                }
             }
-        }
 
-        //set good emoji command, linked to code in messageReactionAdd
-        if (message.content == prefix + " set-good-emoji") {
-            message.channel.send("React with the emoji you want to use for the good board")
-        }
-
-        //set bad emoji command, linked to code in messageReactionAdd
-        if (message.content == prefix + " set-bad-emoji") {
-            message.channel.send("React with the emoji you want to use for the bad board")
-        }
-
-        if (message.content.substr(0, prefix.length + " set-min-reacts".length) == prefix + " set-min-reacts") {
-
-            //Slice the message to get the number the user entered
-            reactNum = parseInt(message.content.substr(prefix.length + " set-min-reacts".length + 1))
-            //Check to see if the number is valid
-            if (!isNaN(reactNum)) {
-                //Update minimum reactions in database
-                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'minReacts', message.content.substr(prefix.length + " set-min-reacts".length + 1))
-                //Apply the new settings to the server
-                applyServerSettings(message.guild.id)
-                message.reply("Set minimum reactions to " + message.content.substr(prefix.length + " set-min-reacts".length + 1) + ".")
-            } else {
-                console.log("Not a valid number.")
+            //Sets bad channel by channel id
+            if (message.content.substr(0, prefix.length + " set-bad-channel".length) == prefix + " set-bad-channel") {
+                try {
+                    //Get the channel id by slicing the message and fetch the channel with it
+                    await client.channels.fetch(message.content.substr(prefix.length + " set-bad-channel".length + 1));
+                    //Update the bad channel in database
+                    updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'badChannel', message.content.substr(prefix.length + " set-bad-channel".length + 1))
+                    //Apply the new settings to the server
+                    applyServerSettings(message.guild.id)
+                    message.reply("Updated " + settingsDict[message.guild.id][3] + " channel")
+                } catch (error) {
+                    message.reply("Please enter a valid channel")
+                    console.log(error)
+                }
             }
-        }
 
-        if (message.content.substr(0, prefix.length + " set-admin-role".length) == prefix + " set-admin-role") {
-            try {
-                //Get the channel id by slicing the message and fetch the channel with it
-                //Update the bad channel in database
-                updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'adminRole', message.content.substr(prefix.length + " set-admin-role".length + 1))
-                //Apply the new settings to the server
-                applyServerSettings(message.guild.id)
-                message.reply("Updated admin role")
-            } catch (error) {
-                message.reply("Please enter a valid role")
-                console.log(error)
+            //set good emoji command, linked to code in messageReactionAdd
+            if (message.content == prefix + " set-good-emoji") {
+                message.channel.send("React with the emoji you want to use for the good board")
             }
+
+            //set bad emoji command, linked to code in messageReactionAdd
+            if (message.content == prefix + " set-bad-emoji") {
+                message.channel.send("React with the emoji you want to use for the bad board")
+            }
+
+            if (message.content.substr(0, prefix.length + " set-min-reacts".length) == prefix + " set-min-reacts") {
+
+                //Slice the message to get the number the user entered
+                reactNum = parseInt(message.content.substr(prefix.length + " set-min-reacts".length + 1))
+                //Check to see if the number is valid
+                if (!isNaN(reactNum)) {
+                    //Update minimum reactions in database
+                    updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'minReacts', message.content.substr(prefix.length + " set-min-reacts".length + 1))
+                    //Apply the new settings to the server
+                    applyServerSettings(message.guild.id)
+                    message.reply("Set minimum reactions to " + message.content.substr(prefix.length + " set-min-reacts".length + 1) + ".")
+                } else {
+                    console.log("Not a valid number.")
+                }
+            }
+
+            if (message.content.substr(0, prefix.length + " set-admin-role".length) == prefix + " set-admin-role") {
+                try {
+                    //Get the channel id by slicing the message and fetch the channel with it
+                    //Update the bad channel in database
+                    updateSchemaEntry(settingsSchema, ['serverID'], [message.guild.id], 'adminRole', message.content.substr(prefix.length + " set-admin-role".length + 1))
+                    //Apply the new settings to the server
+                    applyServerSettings(message.guild.id)
+                    message.reply("Updated admin role")
+                } catch (error) {
+                    message.reply("Please enter a valid role")
+                    console.log(error)
+                }
+            }
+
+
         }
-
-
+    } catch (error) {
+        console.log("admin role error:")
+        console.log(error)
     }
 
-
+    //random int function
+    function getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
 
 
